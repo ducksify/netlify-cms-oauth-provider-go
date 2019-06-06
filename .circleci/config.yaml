@@ -1,0 +1,35 @@
+version: 2
+jobs:
+  nightly:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - run: curl -sL https://git.io/goreleaser | bash
+  master:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - run: make test
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - nightly
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - master
+      - release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
