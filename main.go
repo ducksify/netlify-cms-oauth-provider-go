@@ -13,7 +13,7 @@ import (
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 
-	"github.com/maarek/netlify-cms-oauth-provider-go/dotenv"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -30,16 +30,16 @@ const (
     }
   }
   (function(status, provider, result) {
-    function recieveMessage(e) {
-      console.log("Recieve message:", e);
+    function receiveMessage(e) {
+      console.log("Receive message:", e);
       // send message to main window with da app
       window.opener.postMessage(
         "authorization:" + provider + ":" + status + ":" + result,
         e.origin
       );
     }
-    window.addEventListener("message", recieveMessage, false);
-    // Start handshare with parent
+    window.addEventListener("message", receiveMessage, false);
+    // Start handshake with parent
     console.log("Sending message:", provider)
     window.opener.postMessage(
       "authorizing:" + provider,
@@ -107,7 +107,10 @@ func handleSuccess(res http.ResponseWriter, req *http.Request) {
 }
 
 func init() {
-	dotenv.File(".env")
+	err := godotenv.Load()
+	if err != nil {
+		log.Println(".env file not present. Loading directly from environment")
+	}
 	if hostEnv, ok := os.LookupEnv("HOST"); ok {
 		host = hostEnv
 	}
