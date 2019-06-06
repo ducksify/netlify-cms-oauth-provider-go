@@ -5,19 +5,58 @@ jobs:
       - image: circleci/golang:1.12
     steps:
       - checkout
-      - run: curl -sL https://git.io/goreleaser | bash
-  master:
+      - run:
+          name: Run goreleaser
+          command: curl -sL https://git.io/goreleaser | bash
+  release:
     docker:
       - image: circleci/golang:1.12
     steps:
       - checkout
-      - run: make
+      - run:
+          name: Run goreleaser
+          command: curl -sL https://git.io/goreleaser | bash
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - run:
+          name: Pull Dependencies
+          command: go mod download
+      - run:
+          name: Build binary
+          command: make
 
 workflows:
   version: 2
   commit:
     jobs:
-      - nightly
+      - build
+  build:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              ignore: /^[0-9]+(\.[0-9]+)*/
+  build-and-release:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*/
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*/
   nightly:
     triggers:
       - schedule:
@@ -26,10 +65,17 @@ workflows:
             branches:
               only: master
     jobs:
-      - master
-      - release:
+      - build:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+              only: /^[0-9]+(\.[0-9]+)*/
+      - nightly:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*/
