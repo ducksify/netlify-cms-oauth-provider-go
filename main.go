@@ -17,37 +17,35 @@ import (
 )
 
 var (
-	host         = "localhost:3000"
-	callbackHost = "localhost:3000"
+	port         = "3000"
+	githubHost   = "https://github.com"
+	callbackHost = "https://localhost:3000"
 )
 
 const (
 	script = `<!DOCTYPE html><html><head><script>
-  if (!window.opener) {
-    window.opener = {
-      postMessage: function(action, origin) {
-        console.log(action, origin);
-      }
-    }
-  }
-  (function(status, provider, result) {
-    function receiveMessage(e) {
-      console.log("Receive message:", e);
-      // send message to main window with da app
-      window.opener.postMessage(
-        "authorization:" + provider + ":" + status + ":" + result,
-        e.origin
-      );
-    }
-    window.addEventListener("message", receiveMessage, false);
-    // Start handshake with parent
-    console.log("Sending message:", provider)
-    window.opener.postMessage(
-      "authorizing:" + provider,
-      "*"
-    );
-  })("%s", "%s", %s)
-  </script></head><body></body></html>`
+	if (!window.opener) {
+  	window.opener = {
+  	  postMessage: function(action, origin) {
+  	    console.log(action, origin);
+  	  }
+  	}
+	}	
+	(function(status, provider, result) {
+	  function receiveMessage(e) {
+			console.log("Receive message:", e);
+			
+			msg = "authorization:" + provider + ":" + status + ":" + JSON.stringify(result)
+			console.log("Sending message:", msg);
+	    // send message to main window with da app
+	    window.opener.postMessage(msg, e.origin);
+	  }
+	  window.addEventListener("message", receiveMessage, false);
+	  // Start handshake with parent
+	  console.log("Sending message:", provider);
+	  window.opener.postMessage("authorizing:" + provider, "*");
+	})("%s", "%s", %s)
+	</script></head><body></body></html>`
 )
 
 // GET /
@@ -87,7 +85,7 @@ func handleCallbackProvider(res http.ResponseWriter, req *http.Request) {
 		log.Printf("auth failed with '%s'\n", errAuth)
 		result = fmt.Sprintf("%s", errAuth)
 	} else {
-		log.Printf("Logged in as %s user: %s (%s)\n", user.Provider, user.Email, user.AccessToken)
+		log.Printf("logged in as %s user: %s (%s)\n", user.Provider, user.Email, user.AccessToken)
 		status = "success"
 		result = fmt.Sprintf(`{"token":"%s", "provider":"%s"}`, user.AccessToken, user.Provider)
 	}
@@ -113,39 +111,49 @@ func init() {
 	if err != nil {
 		log.Println(".env file not present. Loading directly from environment")
 	}
-	if hostEnv, ok := os.LookupEnv("HOST"); ok {
-		host = hostEnv
+	if portEnv, ok := os.LookupEnv("PORT"); ok {
+		port = portEnv
 	}
 	if callbackEnv, ok := os.LookupEnv("CALLBACK_HOST"); ok {
 		callbackHost = callbackEnv
 	}
-	var (
-		gitlabProvider goth.Provider
-	)
+
 	if gitlabServer, ok := os.LookupEnv("GITLAB_SERVER"); ok {
-		gitlabProvider = gitlab.NewCustomisedURL(
-			os.Getenv("GITLAB_KEY"), os.Getenv("GITLAB_SECRET"),
-			fmt.Sprintf("https://%s/callback/gitlab", callbackHost),
-			fmt.Sprintf("https://%s/oauth/authorize", gitlabServer),
-			fmt.Sprintf("https://%s/oauth/token", gitlabServer),
-			fmt.Sprintf("https://%s/api/v3/user", gitlabServer),
+		goth.UseProviders(
+			gitlab.NewCustomisedURL(
+				os.Getenv("GITLAB_KEY"), os.Getenv("GITLAB_SECRET"),
+				fmt.Sprintf("%s/callback/gitlab", callbackHost),
+				fmt.Sprintf("https://%s/oauth/authorize", gitlabServer),
+				fmt.Sprintf("https://%s/oauth/token", gitlabServer),
+				fmt.Sprintf("https://%s/api/v3/user", gitlabServer),
+			),
+		)
+	}
+	if githubHost, ok := os.LookupEnv("GITHUB_HOST"); ok {
+		goth.UseProviders(
+			github.NewCustomisedURL(
+				os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"),
+				fmt.Sprintf("%s/callback/github", callbackHost),
+				fmt.Sprintf("%s/login/oauth/authorize", githubHost),
+				fmt.Sprintf("%s/login/oauth/access_token", githubHost),
+				fmt.Sprintf("%s/api/v3/user", githubHost),
+				fmt.Sprintf("%s/api/v3/user/emails", githubHost),
+				"repo",
+			),
 		)
 	} else {
-		gitlabProvider = gitlab.New(
-			os.Getenv("GITLAB_KEY"), os.Getenv("GITLAB_SECRET"),
-			fmt.Sprintf("https://%s/callback/gitlab", callbackHost),
+		goth.UseProviders(
+			github.New(
+				os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"),
+				fmt.Sprintf("%s/callback/github", callbackHost),
+			),
 		)
 	}
 	goth.UseProviders(
-		github.New(
-			os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"),
-			fmt.Sprintf("https://%s/callback/github", callbackHost),
-		),
 		bitbucket.New(
 			os.Getenv("BITBUCKET_KEY"), os.Getenv("BITBUCKET_SECRET"),
-			fmt.Sprintf("https://%s/callback/bitbucket", callbackHost),
+			fmt.Sprintf("%s/callback/bitbucket", callbackHost),
 		),
-		gitlabProvider,
 	)
 }
 
@@ -160,6 +168,6 @@ func main() {
 
 	http.Handle("/", router)
 
-	log.Printf("Started running on %s\n", host)
-	log.Println(http.ListenAndServe(host, nil))
+	log.Printf("started running on %s\n", ":"+port)
+	log.Println(http.ListenAndServe(":"+port, nil))
 }

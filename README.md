@@ -24,6 +24,14 @@ wget -O - -q https://raw.githubusercontent.com/maarek/netlify-cms-oauth-provider
 
 ## 2) Config
 
+## Session Token Config
+
+Session Secret token needs to be injected into the environment to run.
+
+```
+export SESSION_SECRET=secret-token-here
+```
+
 ### Auth Provider Config
 
 Configuration is done with environment variables, which can be supplied as command line arguments, added in your app hosting interface, or loaded from a .env ([dotenv](https://github.com/motdotla/dotenv)) file.
@@ -33,7 +41,7 @@ Configuration is done with environment variables, which can be supplied as comma
 ```
 HOST=localhost:3000
 CALLBACK_HOST=localhost:3000
-SESSION_SECRET=your-random-string
+GITHUB_HOST=
 GITHUB_KEY=
 GITHUB_SECRET=
 BITBUCKET_KEY=
@@ -54,5 +62,6 @@ backend:
   name: github
   repo: user/repo   # Path to your Github repository
   branch: master    # Branch to update
-  base_url: https://your.server.com # Path to ext auth provider
+  base_url: https://your.server.com      # Path to ext auth provider
+  api_root: http://ent-github.com/api/v3 # Path to enterprise github
 ```
