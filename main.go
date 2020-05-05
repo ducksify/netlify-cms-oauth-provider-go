@@ -145,7 +145,8 @@ func init() {
 		goth.UseProviders(
 			github.New(
 				os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"),
-				fmt.Sprintf("%s/callback/github", callbackHost),
+				fmt.Sprintf("%s/callback/github", callbackHost, ),
+				"repo",
 			),
 		)
 	}
