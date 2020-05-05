@@ -1,14 +1,17 @@
 on: release
 name: Build
 jobs:
-  release-linux-amd64:
-    name: release linux/amd64
+  generate:
+    name: Generate cross-platform builds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - name: compile and release
-        uses: ngs/go-release.action@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOARCH: amd64
-          GOOS: linux
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Generate build files
+        uses: thatisuday/go-cross-build@v1
+        with:
+          platforms: 'linux/amd64, darwin/amd64, windows/amd64'
+          package: 'netlify-cms-oauth-provider-go'
+          name: 'netlify-cms-oauth-provider-go'
+          compress: 'false'
+          dest: 'dist'
