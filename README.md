@@ -24,7 +24,7 @@ Configuration is done with environment variables, which can be supplied as comma
 
 **Example .env file:**
 
-```
+```bash
 PORT=3000
 CALLBACK_HOST=localhost:3000
 GITHUB_HOST=
